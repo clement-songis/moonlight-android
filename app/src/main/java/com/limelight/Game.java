@@ -31,6 +31,7 @@ import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
+import com.limelight.binding.input.HostKeyboardLayout;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
 import com.limelight.utils.ShortcutHelper;
@@ -97,6 +98,9 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     // Only 2 touches are supported
     private final TouchContext[] touchContextMap = new TouchContext[2];
     private long threeFingerDownTime = 0;
+
+    // Fork: layout of the host keyboard, used to type soft keyboard characters
+    private HostKeyboardLayout hostLayout;
 
     private static final int REFERENCE_HORIZ_RES = 1280;
     private static final int REFERENCE_VERT_RES = 720;
@@ -247,6 +251,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         // allows proper touch splitting, which the OSC relies upon.
         View backgroundTouchView = findViewById(R.id.backgroundTouchView);
         backgroundTouchView.setOnTouchListener(this);
+
+        hostLayout = HostKeyboardLayout.forId(prefConfig.hostKeyboardLayout);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Request unbuffered input event dispatching for all input classes we handle here.
@@ -1371,6 +1377,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return false;
             }
 
+            // Fork: soft keyboard characters go through the host keyboard layout
+            if (handleSoftKeyboardEvent(event, true)) {
+                return true;
+            }
+
             // We'll send it as a raw key event if we have a key mapping, otherwise we'll send it
             // as UTF-8 text (if it's a printable character).
             short translated = keyboardTranslator.translate(event.getKeyCode(), event.getDeviceId());
@@ -1450,6 +1461,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 return false;
             }
 
+            if (handleSoftKeyboardEvent(event, false)) {
+                return true;
+            }
+
             short translated = keyboardTranslator.translate(event.getKeyCode(), event.getDeviceId());
             if (translated == 0) {
                 // If we sent this event as UTF-8 on key down, also report that it was handled
@@ -1483,7 +1498,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return false;
         }
 
-        conn.sendUtf8Text(event.getCharacters());
+        typeTextOnHost(event.getCharacters(), 0);
         return true;
     }
 
@@ -1502,6 +1517,120 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         LimeLog.info("Toggling keyboard overlay");
         InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputManager.toggleSoftInput(0, 0);
+    }
+
+    // ---- Soft keyboard -> host keys, using the host keyboard layout ----
+
+    private static final short VK_FLAG = (short) 0x8000;
+
+    private void sendVk(int vk, boolean down, byte modifiers) {
+        conn.sendKeyboardInput((short) (VK_FLAG | (vk & 0xFF)),
+                down ? KeyboardPacket.KEY_DOWN : KeyboardPacket.KEY_UP, modifiers, (byte) 0);
+    }
+
+    /**
+     * Press and release a key with modifiers: the stroke's own Shift/AltGr and extraMods
+     * (HostKeyboardLayout.MOD_*).
+     */
+    private void pressVk(int vk, boolean shift, boolean altGr, int extraMods) {
+        int mods = extraMods;
+        if (shift) mods |= HostKeyboardLayout.MOD_SHIFT;
+        if (altGr) mods |= HostKeyboardLayout.MOD_ALTGR;
+
+        byte flags = 0;
+        if ((mods & HostKeyboardLayout.MOD_SHIFT) != 0) flags |= KeyboardPacket.MODIFIER_SHIFT;
+        if ((mods & HostKeyboardLayout.MOD_CTRL) != 0) flags |= KeyboardPacket.MODIFIER_CTRL;
+        if ((mods & (HostKeyboardLayout.MOD_ALT | HostKeyboardLayout.MOD_ALTGR)) != 0) flags |= KeyboardPacket.MODIFIER_ALT;
+        if ((mods & HostKeyboardLayout.MOD_WIN) != 0) flags |= KeyboardPacket.MODIFIER_META;
+
+        int[] order = { HostKeyboardLayout.MOD_CTRL, HostKeyboardLayout.MOD_ALT, HostKeyboardLayout.MOD_WIN,
+                HostKeyboardLayout.MOD_SHIFT, HostKeyboardLayout.MOD_ALTGR };
+        int[] vks = { HostKeyboardLayout.VK_LCONTROL, HostKeyboardLayout.VK_LMENU, HostKeyboardLayout.VK_LWIN,
+                HostKeyboardLayout.VK_LSHIFT, HostKeyboardLayout.VK_RMENU };
+        for (int i = 0; i < order.length; i++) {
+            if ((mods & order[i]) != 0) {
+                sendVk(vks[i], true, flags);
+            }
+        }
+        sendVk(vk, true, flags);
+        sendVk(vk, false, flags);
+        for (int i = order.length - 1; i >= 0; i--) {
+            if ((mods & order[i]) != 0) {
+                sendVk(vks[i], false, (byte) 0);
+            }
+        }
+    }
+
+    private void typeTextOnHost(String text, int extraMods) {
+        if (conn == null || text == null || text.isEmpty()) {
+            return;
+        }
+        StringBuilder unicodeRun = new StringBuilder();
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            HostKeyboardLayout.Stroke[] strokes = Character.isSurrogate(c) ? null : hostLayout.strokesFor(c);
+            if (strokes == null) {
+                unicodeRun.append(c);
+                continue;
+            }
+            if (unicodeRun.length() > 0) {
+                conn.sendUtf8Text(unicodeRun.toString());
+                unicodeRun.setLength(0);
+            }
+            for (HostKeyboardLayout.Stroke st : strokes) {
+                pressVk(st.vk, st.shift, st.altGr, extraMods);
+            }
+        }
+        if (unicodeRun.length() > 0) {
+            conn.sendUtf8Text(unicodeRun.toString());
+        }
+    }
+
+    private static boolean isSoftKeyboardEvent(KeyEvent event) {
+        return (event.getFlags() & KeyEvent.FLAG_SOFT_KEYBOARD) != 0 ||
+                event.getDeviceId() == KeyCharacterMap.VIRTUAL_KEYBOARD;
+    }
+
+    /**
+     * Soft keyboard key events. Printable characters are typed through the host layout
+     * (so 'a' is an 'a' on an AZERTY host).
+     * @return true if handled (both for down and up events)
+     */
+    private boolean handleSoftKeyboardEvent(KeyEvent event, boolean down) {
+        if (hostLayout == null || conn == null || !isSoftKeyboardEvent(event)) {
+            return false;
+        }
+        int keyCode = event.getKeyCode();
+        if (KeyEvent.isModifierKey(keyCode)) {
+            // IMEs report Shift through the meta state of the next key. Swallow these.
+            return true;
+        }
+
+        int extraMods = 0;
+        if (event.isCtrlPressed()) extraMods |= HostKeyboardLayout.MOD_CTRL;
+        if (event.isAltPressed()) extraMods |= HostKeyboardLayout.MOD_ALT;
+        if (event.isMetaPressed()) extraMods |= HostKeyboardLayout.MOD_WIN;
+
+        int unicodeChar = extraMods != 0 ? event.getUnicodeChar(event.getMetaState() & KeyEvent.META_SHIFT_MASK)
+                : event.getUnicodeChar();
+        boolean printable = unicodeChar != 0 &&
+                (unicodeChar & KeyCharacterMap.COMBINING_ACCENT) == 0 &&
+                !Character.isISOControl(unicodeChar);
+        if (printable) {
+            if (down) {
+                typeTextOnHost(new String(Character.toChars(unicodeChar)), extraMods);
+            }
+            return true;
+        }
+
+        short translated = keyboardTranslator.translate(keyCode, event.getDeviceId());
+        if (translated == 0) {
+            return false;
+        }
+        if (down) {
+            pressVk(translated & 0xFF, event.isShiftPressed(), false, extraMods);
+        }
+        return true;
     }
 
     private byte getLiTouchTypeFromEvent(MotionEvent event) {
