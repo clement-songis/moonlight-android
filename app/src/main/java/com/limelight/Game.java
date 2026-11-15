@@ -560,6 +560,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private void setPreferredOrientationForCurrentDisplay() {
         Display display = getWindowManager().getDefaultDisplay();
 
+        // Fork: with the soft keyboard and zoom, portrait is usable for desktop streaming
+        if (PreferenceConfiguration.ORIENTATION_PORTRAIT.equals(prefConfig.streamOrientation)) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT);
+            return;
+        }
+        else if (PreferenceConfiguration.ORIENTATION_AUTO.equals(prefConfig.streamOrientation)) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+            return;
+        }
+
         // For semi-square displays, we use more complex logic to determine which orientation to use (if any)
         if (PreferenceConfiguration.isSquarishScreen(display)) {
             int desiredOrientation = Configuration.ORIENTATION_UNDEFINED;

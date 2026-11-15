@@ -314,4 +314,8 @@
     <string name="title_two_finger_pan">Two-finger drag pans when zoomed</string>
     <string name="summary_two_finger_pan">When zoomed in, dragging with two fingers moves the view instead of scrolling</string>
     <string name="toast_zoom_reset">Zoom reset</string>
+    <string name="title_stream_orientation">Stream orientation</string>
+    <string name="orientation_auto">Free rotation (portrait and landscape)</string>
+    <string name="orientation_landscape">Landscape (Moonlight default)</string>
+    <string name="orientation_portrait">Portrait</string>
 </resources>

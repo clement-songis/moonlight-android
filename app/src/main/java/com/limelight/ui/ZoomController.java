@@ -74,6 +74,10 @@ public class ZoomController {
             return;
         }
         bottomInset = inset;
+        if (!isZoomed()) {
+            // Unzoomed: re-center, then apply() lifts the content above the keyboard if needed
+            transX = transY = 0;
+        }
         apply();
     }
 
@@ -222,8 +226,10 @@ public class ZoomController {
             hi = vMin - base;
         }
         else {
-            lo = Math.min(0, vMax - base - length);
-            hi = Math.max(0, vMin - base);
+            // Content smaller than the visible area: keep it fully inside it (this lifts a
+            // letterboxed portrait stream above the soft keyboard)
+            lo = vMin - base;
+            hi = vMax - base - length;
         }
         return clamp(t, lo, hi);
     }

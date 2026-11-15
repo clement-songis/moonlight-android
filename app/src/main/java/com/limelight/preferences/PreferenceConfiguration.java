@@ -60,6 +60,10 @@ public class PreferenceConfiguration {
     private static final String FLIP_FACE_BUTTONS_PREF_STRING = "checkbox_flip_face_buttons";
     private static final String TOUCHSCREEN_TRACKPAD_PREF_STRING = "checkbox_touchscreen_trackpad";
     private static final String HOST_KEYBOARD_LAYOUT_PREF_STRING = "list_host_keyboard_layout";
+    private static final String STREAM_ORIENTATION_PREF_STRING = "list_stream_orientation";
+    public static final String ORIENTATION_AUTO = "auto";
+    public static final String ORIENTATION_LANDSCAPE = "landscape";
+    public static final String ORIENTATION_PORTRAIT = "portrait";
     private static final String KEYBOARD_BUTTON_PREF_STRING = "checkbox_floating_keyboard_button";
     private static final String PINCH_ZOOM_PREF_STRING = "checkbox_pinch_zoom";
     private static final String TWO_FINGER_PAN_PREF_STRING = "checkbox_two_finger_pan_when_zoomed";
@@ -151,6 +155,7 @@ public class PreferenceConfiguration {
     public int vibrateFallbackToDeviceStrength;
     public boolean touchscreenTrackpad;
     public String hostKeyboardLayout;
+    public String streamOrientation;
     public boolean floatingKeyboardButton;
     public boolean pinchZoom;
     public boolean twoFingerPanWhenZoomed;
@@ -602,6 +607,7 @@ public class PreferenceConfiguration {
         config.flipFaceButtons = prefs.getBoolean(FLIP_FACE_BUTTONS_PREF_STRING, DEFAULT_FLIP_FACE_BUTTONS);
         config.touchscreenTrackpad = prefs.getBoolean(TOUCHSCREEN_TRACKPAD_PREF_STRING, DEFAULT_TOUCHSCREEN_TRACKPAD);
         config.hostKeyboardLayout = prefs.getString(HOST_KEYBOARD_LAYOUT_PREF_STRING, "fr");
+        config.streamOrientation = prefs.getString(STREAM_ORIENTATION_PREF_STRING, ORIENTATION_AUTO);
         config.floatingKeyboardButton = prefs.getBoolean(KEYBOARD_BUTTON_PREF_STRING, true);
         config.pinchZoom = prefs.getBoolean(PINCH_ZOOM_PREF_STRING, true);
         config.twoFingerPanWhenZoomed = prefs.getBoolean(TWO_FINGER_PAN_PREF_STRING, true);

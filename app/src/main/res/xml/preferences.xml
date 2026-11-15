@@ -130,6 +130,13 @@
     <PreferenceCategory android:title="@string/category_input_settings"
         android:key="category_input_settings">
         <ListPreference
+            android:key="list_stream_orientation"
+            android:title="@string/title_stream_orientation"
+            android:summary="%s"
+            android:entries="@array/stream_orientation_names"
+            android:entryValues="@array/stream_orientation_values"
+            android:defaultValue="auto" />
+        <ListPreference
             android:key="list_host_keyboard_layout"
             android:title="@string/title_host_keyboard_layout"
             android:summary="%s"
