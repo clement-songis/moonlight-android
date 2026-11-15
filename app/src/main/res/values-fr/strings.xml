@@ -284,4 +284,8 @@
     <string name="title_seekbar_vibrate_fallback_strength">Ajuster l\'intensité de la vibration émulée</string>
     <string name="summary_seekbar_vibrate_fallback_strength">Amplifie ou réduit l\'intensité de la vibration sur votre appareil</string>
     <string name="suffix_seekbar_vibrate_fallback_strength">%</string>
+    <string name="title_host_keyboard_layout">Disposition clavier de l\'hôte (clavier tactile)</string>
+    <string name="host_layout_fr">AZERTY français</string>
+    <string name="host_layout_us">QWERTY US</string>
+    <string name="host_layout_unicode">Texte Unicode (toute disposition, pas pour les jeux)</string>
 </resources>

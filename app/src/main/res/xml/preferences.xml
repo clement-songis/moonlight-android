@@ -129,6 +129,13 @@
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/category_input_settings"
         android:key="category_input_settings">
+        <ListPreference
+            android:key="list_host_keyboard_layout"
+            android:title="@string/title_host_keyboard_layout"
+            android:summary="%s"
+            android:entries="@array/host_keyboard_layout_names"
+            android:entryValues="@array/host_keyboard_layout_values"
+            android:defaultValue="fr" />
         <CheckBoxPreference
             android:key="checkbox_touchscreen_trackpad"
             android:title="@string/title_checkbox_touchscreen_trackpad"

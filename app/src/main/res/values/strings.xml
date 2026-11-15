@@ -303,4 +303,8 @@
     <string name="analogscroll_none">None (both sticks move the mouse)</string>
     <string name="analogscroll_right">Right analog stick</string>
     <string name="analogscroll_left">Left analog stick</string>
+    <string name="title_host_keyboard_layout">Host keyboard layout (soft keyboard)</string>
+    <string name="host_layout_fr">French AZERTY</string>
+    <string name="host_layout_us">US QWERTY</string>
+    <string name="host_layout_unicode">Unicode text (any layout, not for games)</string>
 </resources>

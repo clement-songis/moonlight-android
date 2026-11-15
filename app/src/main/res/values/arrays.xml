@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="host_keyboard_layout_names">
+        <item>@string/host_layout_fr</item>
+        <item>@string/host_layout_us</item>
+        <item>@string/host_layout_unicode</item>
+    </string-array>
+    <string-array name="host_keyboard_layout_values" translatable="false">
+        <item>fr</item>
+        <item>us</item>
+        <item>unicode</item>
+    </string-array>
     <string-array name="resolution_names">
         <item>@string/resolution_360p</item>
         <item>@string/resolution_480p</item>
