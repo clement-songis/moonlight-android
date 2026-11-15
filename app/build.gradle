@@ -16,6 +16,22 @@ android {
 
         // Generate native debug symbols to allow Google Play to symbolicate our native crashes
         ndk.debugSymbolLevel = 'FULL'
+
+        // Fork: optionally build a single ABI (-PforkAbi=arm64-v8a) to save build time
+        if (project.hasProperty('forkAbi')) {
+            ndk { abiFilters project.property('forkAbi') }
+        }
+    }
+
+    signingConfigs {
+        fork {
+            if (project.hasProperty('forkKeystore')) {
+                storeFile file(project.property('forkKeystore'))
+                storePassword project.property('forkKeystorePassword')
+                keyAlias project.property('forkKeyAlias')
+                keyPassword project.property('forkKeystorePassword')
+            }
+        }
     }
 
     flavorDimensions.add("root")
@@ -119,8 +135,11 @@ android {
             //
             // TL;DR: Leave the following line alone!
             applicationIdSuffix ".unofficial"
-            resValue "string", "app_label", "Moonlight"
-            resValue "string", "app_label_root", "Moonlight (Root)"
+            resValue "string", "app_label", "Moonlight Fork"
+            resValue "string", "app_label_root", "Moonlight Fork (Root)"
+            if (project.hasProperty('forkKeystore')) {
+                signingConfig signingConfigs.fork
+            }
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
