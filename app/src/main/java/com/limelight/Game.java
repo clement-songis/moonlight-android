@@ -32,6 +32,7 @@ import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.ui.KeyboardToolbar;
+import com.limelight.ui.ZoomController;
 import com.limelight.binding.input.HostKeyboardLayout;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
@@ -101,11 +102,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private final TouchContext[] touchContextMap = new TouchContext[2];
     private long threeFingerDownTime = 0;
 
-    // Fork: keyboard helpers and host layout
+    // Fork: zoom, keyboard helpers and host layout
+    private ZoomController zoomController;
     private KeyboardToolbar keyboardToolbar;
     private HostKeyboardLayout hostLayout;
     private boolean imeVisible = false;
     private int imeHeight = 0;
+    private float lastTouchContainerX = -1, lastTouchContainerY = -1;
     // Robust 3-finger tap tracking
     private boolean threeFingerActive = false;
     private boolean threeFingerMoved = false;
@@ -1572,6 +1575,29 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         hostLayout = HostKeyboardLayout.forId(prefConfig.hostKeyboardLayout);
         final FrameLayout root = (FrameLayout) streamView.getParent();
 
+        if (prefConfig.pinchZoom) {
+            zoomController = new ZoomController(streamView, backgroundTouchView, new ZoomController.Listener() {
+                @Override
+                public void onZoomGestureStarted() {
+                    for (TouchContext aTouchContext : touchContextMap) {
+                        if (aTouchContext != null) {
+                            aTouchContext.cancelTouch();
+                        }
+                    }
+                }
+
+                @Override
+                public void onZoomChanged(float scale) {
+                }
+            }, prefConfig.twoFingerPanWhenZoomed);
+            streamView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                    zoomController.onLayoutChanged();
+                }
+            });
+        }
+
         keyboardToolbar = new KeyboardToolbar(this, root, new KeyboardToolbar.Callbacks() {
             @Override
             public void onToggleKeyboardRequested() {
@@ -1585,7 +1611,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             @Override
             public void onResetZoomRequested() {
-                // No zoom in this build
+                if (zoomController != null) {
+                    zoomController.reset();
+                    Toast.makeText(Game.this, R.string.toast_zoom_reset, Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
@@ -1635,6 +1664,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     private void onImeVisibilityChanged(boolean visible, int height) {
+        boolean becameVisible = visible && !imeVisible;
         if (visible == imeVisible && height == imeHeight) {
             return;
         }
@@ -1642,6 +1672,25 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         imeHeight = visible ? height : 0;
         if (keyboardToolbar != null) {
             keyboardToolbar.setImeHeight(imeHeight);
+        }
+        updateZoomBottomInset(becameVisible);
+        // The bar height is only known after layout
+        streamView.post(new Runnable() {
+            @Override
+            public void run() {
+                updateZoomBottomInset(false);
+            }
+        });
+    }
+
+    private void updateZoomBottomInset(boolean ensureLastTouchVisible) {
+        if (zoomController == null) {
+            return;
+        }
+        int bar = keyboardToolbar != null ? keyboardToolbar.getBarHeight() : 0;
+        zoomController.setBottomInset(imeVisible ? imeHeight + bar : 0);
+        if (ensureLastTouchVisible && lastTouchContainerY >= 0) {
+            zoomController.ensureVisible(lastTouchContainerX, lastTouchContainerY);
         }
     }
 
@@ -2536,6 +2585,26 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             //
             // NB: This is still needed even when we call the newer requestUnbufferedDispatch()!
             view.requestUnbufferedDispatch(event);
+        }
+
+        if (event.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER) {
+            int idx = event.getActionIndex();
+            lastTouchContainerX = event.getX(idx);
+            lastTouchContainerY = event.getY(idx);
+
+            if (zoomController != null) {
+                if (zoomController.onTouchEvent(event)) {
+                    return true;
+                }
+                if (zoomController.isZoomed() || zoomController.getBottomInset() > 0) {
+                    // Map the touch back to unzoomed coordinates for Moonlight
+                    MotionEvent mapped = MotionEvent.obtain(event);
+                    zoomController.mapEvent(mapped);
+                    boolean ret = handleMotionEvent(view, mapped);
+                    mapped.recycle();
+                    return ret;
+                }
+            }
         }
 
         return handleMotionEvent(view, event);
