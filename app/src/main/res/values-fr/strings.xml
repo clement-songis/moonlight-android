@@ -295,4 +295,8 @@
     <string name="title_two_finger_pan">Glisser à deux doigts déplace la vue quand zoomé</string>
     <string name="summary_two_finger_pan">Une fois zoomé, glisser à deux doigts déplace la vue au lieu de défiler</string>
     <string name="toast_zoom_reset">Zoom réinitialisé</string>
+    <string name="title_stream_orientation">Orientation du flux</string>
+    <string name="orientation_auto">Rotation libre (portrait et paysage)</string>
+    <string name="orientation_landscape">Paysage (comportement Moonlight)</string>
+    <string name="orientation_portrait">Portrait</string>
 </resources>
