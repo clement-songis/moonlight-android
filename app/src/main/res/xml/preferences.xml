@@ -137,6 +137,11 @@
             android:entryValues="@array/host_keyboard_layout_values"
             android:defaultValue="fr" />
         <CheckBoxPreference
+            android:key="checkbox_floating_keyboard_button"
+            android:title="@string/title_floating_keyboard_button"
+            android:summary="@string/summary_floating_keyboard_button"
+            android:defaultValue="true" />
+        <CheckBoxPreference
             android:key="checkbox_touchscreen_trackpad"
             android:title="@string/title_checkbox_touchscreen_trackpad"
             android:summary="@string/summary_checkbox_touchscreen_trackpad"

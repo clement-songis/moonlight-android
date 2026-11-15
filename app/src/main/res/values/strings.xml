@@ -307,4 +307,6 @@
     <string name="host_layout_fr">French AZERTY</string>
     <string name="host_layout_us">US QWERTY</string>
     <string name="host_layout_unicode">Unicode text (any layout, not for games)</string>
+    <string name="title_floating_keyboard_button">Floating keyboard button</string>
+    <string name="summary_floating_keyboard_button">Draggable button: tap to show/hide the keyboard</string>
 </resources>

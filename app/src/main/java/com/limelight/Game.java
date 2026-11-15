@@ -31,6 +31,7 @@ import com.limelight.preferences.GlPreferences;
 import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
+import com.limelight.ui.KeyboardToolbar;
 import com.limelight.binding.input.HostKeyboardLayout;
 import com.limelight.utils.Dialog;
 import com.limelight.utils.ServerHelper;
@@ -74,6 +75,7 @@ import android.view.View.OnGenericMotionListener;
 import android.view.View.OnSystemUiVisibilityChangeListener;
 import android.view.View.OnTouchListener;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.view.inputmethod.InputMethodManager;
@@ -99,8 +101,19 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private final TouchContext[] touchContextMap = new TouchContext[2];
     private long threeFingerDownTime = 0;
 
-    // Fork: layout of the host keyboard, used to type soft keyboard characters
+    // Fork: keyboard helpers and host layout
+    private KeyboardToolbar keyboardToolbar;
     private HostKeyboardLayout hostLayout;
+    private boolean imeVisible = false;
+    private int imeHeight = 0;
+    // Robust 3-finger tap tracking
+    private boolean threeFingerActive = false;
+    private boolean threeFingerMoved = false;
+    private long firstFingerDownTime = 0;
+    private final float[] threeFingerStartX = new float[32];
+    private final float[] threeFingerStartY = new float[32];
+    private static final int THREE_FINGER_TAP_MAX_DURATION = 600;
+    private static final int THREE_FINGER_TAP_MAX_SPAN = 1000;
 
     private static final int REFERENCE_HORIZ_RES = 1280;
     private static final int REFERENCE_VERT_RES = 720;
@@ -252,7 +265,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         View backgroundTouchView = findViewById(R.id.backgroundTouchView);
         backgroundTouchView.setOnTouchListener(this);
 
-        hostLayout = HostKeyboardLayout.forId(prefConfig.hostKeyboardLayout);
+        setupForkInputHelpers(backgroundTouchView);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // Request unbuffered input event dispatching for all input classes we handle here.
@@ -1514,9 +1527,122 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public void toggleKeyboard() {
-        LimeLog.info("Toggling keyboard overlay");
-        InputMethodManager inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        inputManager.toggleSoftInput(0, 0);
+        LimeLog.info("Toggling keyboard overlay (visible=" + imeVisible + ")");
+        if (imeVisible) {
+            hideKeyboard();
+        }
+        else {
+            showKeyboard();
+        }
+    }
+
+    private void showKeyboard() {
+        streamView.setFocusable(true);
+        streamView.setFocusableInTouchMode(true);
+        streamView.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        // The IME must restart its connection: the view may have been bound before it
+        // was considered a text editor.
+        imm.restartInput(streamView);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().getInsetsController().show(WindowInsets.Type.ime());
+        }
+        if (!imm.showSoftInput(streamView, 0)) {
+            // Older devices/IMEs: force it
+            imm.showSoftInput(streamView, InputMethodManager.SHOW_FORCED);
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            // No reliable IME visibility callback: assume it opened
+            onImeVisibilityChanged(true, imeHeight);
+        }
+    }
+
+    private void hideKeyboard() {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().getInsetsController().hide(WindowInsets.Type.ime());
+        }
+        imm.hideSoftInputFromWindow(streamView.getWindowToken(), 0);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            onImeVisibilityChanged(false, 0);
+        }
+    }
+
+    private void setupForkInputHelpers(View backgroundTouchView) {
+        hostLayout = HostKeyboardLayout.forId(prefConfig.hostKeyboardLayout);
+        final FrameLayout root = (FrameLayout) streamView.getParent();
+
+        keyboardToolbar = new KeyboardToolbar(this, root, new KeyboardToolbar.Callbacks() {
+            @Override
+            public void onToggleKeyboardRequested() {
+                toggleKeyboard();
+            }
+
+            @Override
+            public void onHideKeyboardRequested() {
+                hideKeyboard();
+            }
+
+            @Override
+            public void onResetZoomRequested() {
+                // No zoom in this build
+            }
+
+            @Override
+            public void onExtraKey(int vk) {
+                if (conn != null) {
+                    pressVk(vk, false, false, 0);
+                    keyboardToolbar.consumeOneShotModifiers();
+                }
+            }
+        }, prefConfig.floatingKeyboardButton);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // We handle the IME insets ourselves: the stream must not be resized or panned
+            // by the system, we pan it (zoom controller) and place the extra keys bar.
+            getWindow().setDecorFitsSystemWindows(false);
+            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE |
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+            root.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+                @Override
+                public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
+                    boolean visible = insets.isVisible(WindowInsets.Type.ime());
+                    int bottom = insets.getInsets(WindowInsets.Type.ime()).bottom;
+                    onImeVisibilityChanged(visible && bottom > 0, bottom);
+                    return insets;
+                }
+            });
+        }
+        else {
+            getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING |
+                    WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+            final View decor = getWindow().getDecorView();
+            decor.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    Rect r = new Rect();
+                    decor.getWindowVisibleDisplayFrame(r);
+                    int hidden = decor.getRootView().getHeight() - r.bottom;
+                    if (hidden > decor.getRootView().getHeight() / 6) {
+                        onImeVisibilityChanged(true, hidden);
+                    }
+                    else if (imeHeight > 0) {
+                        onImeVisibilityChanged(false, 0);
+                    }
+                }
+            });
+        }
+    }
+
+    private void onImeVisibilityChanged(boolean visible, int height) {
+        if (visible == imeVisible && height == imeHeight) {
+            return;
+        }
+        imeVisible = visible;
+        imeHeight = visible ? height : 0;
+        if (keyboardToolbar != null) {
+            keyboardToolbar.setImeHeight(imeHeight);
+        }
     }
 
     // ---- Soft keyboard -> host keys, using the host keyboard layout ----
@@ -1529,11 +1655,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     }
 
     /**
-     * Press and release a key with modifiers: the stroke's own Shift/AltGr and extraMods
-     * (HostKeyboardLayout.MOD_*).
+     * Press and release a key with modifiers: the stroke's own Shift/AltGr, the sticky
+     * modifiers of the extra keys bar and extraMods (HostKeyboardLayout.MOD_*).
      */
     private void pressVk(int vk, boolean shift, boolean altGr, int extraMods) {
-        int mods = extraMods;
+        int mods = extraMods | (keyboardToolbar != null ? keyboardToolbar.getActiveModifiers() : 0);
         if (shift) mods |= HostKeyboardLayout.MOD_SHIFT;
         if (altGr) mods |= HostKeyboardLayout.MOD_ALTGR;
 
@@ -1584,6 +1710,24 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         if (unicodeRun.length() > 0) {
             conn.sendUtf8Text(unicodeRun.toString());
         }
+        if (keyboardToolbar != null) {
+            keyboardToolbar.consumeOneShotModifiers();
+        }
+    }
+
+    @Override
+    public void handleText(String text) {
+        typeTextOnHost(text, 0);
+    }
+
+    @Override
+    public void handleDeleteBackward(int count) {
+        if (conn == null) {
+            return;
+        }
+        for (int i = 0; i < count; i++) {
+            pressVk(HostKeyboardLayout.VK_BACK, false, false, 0);
+        }
     }
 
     private static boolean isSoftKeyboardEvent(KeyEvent event) {
@@ -1593,7 +1737,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     /**
      * Soft keyboard key events. Printable characters are typed through the host layout
-     * (so 'a' is an 'a' on an AZERTY host).
+     * (so 'a' is an 'a' on an AZERTY host), other keys get the sticky modifiers.
      * @return true if handled (both for down and up events)
      */
     private boolean handleSoftKeyboardEvent(KeyEvent event, boolean down) {
@@ -1602,7 +1746,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         int keyCode = event.getKeyCode();
         if (KeyEvent.isModifierKey(keyCode)) {
-            // IMEs report Shift through the meta state of the next key. Swallow these.
+            // IMEs report Shift through the meta state of the next key; host modifiers
+            // come from the extra keys bar. Swallow these.
             return true;
         }
 
@@ -1629,8 +1774,86 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
         if (down) {
             pressVk(translated & 0xFF, event.isShiftPressed(), false, extraMods);
+            if (keyboardToolbar != null) {
+                keyboardToolbar.consumeOneShotModifiers();
+            }
         }
         return true;
+    }
+
+    /**
+     * Tolerant 3-finger tap: fingers may land and lift in any order, the tap may last up to
+     * THREE_FINGER_TAP_MAX_DURATION after the 3rd finger, small finger drift is allowed, and a
+     * system ACTION_CANCEL (OEM 3-finger gestures) still counts as a tap if nothing moved.
+     * Upstream required exactly 3 pointers and all fingers up within 300 ms of the 3rd one.
+     * @return true if the event is consumed by the gesture
+     */
+    private boolean handleThreeFingerGesture(MotionEvent event) {
+        final float slop = 40 * getResources().getDisplayMetrics().density;
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                threeFingerActive = false;
+                threeFingerMoved = false;
+                firstFingerDownTime = event.getEventTime();
+                return false;
+
+            case MotionEvent.ACTION_POINTER_DOWN:
+                if (event.getPointerCount() >= 3) {
+                    if (!threeFingerActive) {
+                        threeFingerActive = true;
+                        threeFingerMoved = false;
+                        threeFingerDownTime = event.getEventTime();
+                        // Cancel the first and second touches to avoid erroneous events
+                        for (TouchContext aTouchContext : touchContextMap) {
+                            aTouchContext.cancelTouch();
+                        }
+                    }
+                    for (int i = 0; i < event.getPointerCount(); i++) {
+                        int id = event.getPointerId(i);
+                        if (id < threeFingerStartX.length && (i == event.getActionIndex() || event.getPointerCount() == 3)) {
+                            threeFingerStartX[id] = event.getX(i);
+                            threeFingerStartY[id] = event.getY(i);
+                        }
+                    }
+                    return true;
+                }
+                return threeFingerActive;
+
+            case MotionEvent.ACTION_MOVE:
+                if (!threeFingerActive) {
+                    return false;
+                }
+                for (int i = 0; i < event.getPointerCount(); i++) {
+                    int id = event.getPointerId(i);
+                    if (id < threeFingerStartX.length &&
+                            Math.hypot(event.getX(i) - threeFingerStartX[id], event.getY(i) - threeFingerStartY[id]) > slop) {
+                        threeFingerMoved = true;
+                    }
+                }
+                return true;
+
+            case MotionEvent.ACTION_POINTER_UP:
+                return threeFingerActive;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (!threeFingerActive) {
+                    return false;
+                }
+                threeFingerActive = false;
+                long now = event.getEventTime();
+                if (!threeFingerMoved &&
+                        now - threeFingerDownTime < THREE_FINGER_TAP_MAX_DURATION &&
+                        now - firstFingerDownTime < THREE_FINGER_TAP_MAX_SPAN) {
+                    toggleKeyboard();
+                }
+                for (TouchContext aTouchContext : touchContextMap) {
+                    aTouchContext.cancelTouch();
+                    aTouchContext.setPointerCount(0);
+                }
+                return true;
+        }
+        return false;
     }
 
     private byte getLiTouchTypeFromEvent(MotionEvent event) {
@@ -2146,18 +2369,8 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 int eventX = (int)(event.getX(actionIndex) + xOffset);
                 int eventY = (int)(event.getY(actionIndex) + yOffset);
 
-                // Special handling for 3 finger gesture
-                if (event.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN &&
-                        event.getPointerCount() == 3) {
-                    // Three fingers down
-                    threeFingerDownTime = event.getEventTime();
-
-                    // Cancel the first and second touches to avoid
-                    // erroneous events
-                    for (TouchContext aTouchContext : touchContextMap) {
-                        aTouchContext.cancelTouch();
-                    }
-
+                // Special handling for 3 finger gesture (fork: tolerant detection)
+                if (handleThreeFingerGesture(event)) {
                     return true;
                 }
 
@@ -2186,16 +2399,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     break;
                 case MotionEvent.ACTION_POINTER_UP:
                 case MotionEvent.ACTION_UP:
-                    if (event.getPointerCount() == 1 &&
-                            (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || (event.getFlags() & MotionEvent.FLAG_CANCELED) == 0)) {
-                        // All fingers up
-                        if (event.getEventTime() - threeFingerDownTime < THREE_FINGER_TAP_THRESHOLD) {
-                            // This is a 3 finger tap to bring up the keyboard
-                            toggleKeyboard();
-                            return true;
-                        }
-                    }
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && (event.getFlags() & MotionEvent.FLAG_CANCELED) != 0) {
                         context.cancelTouch();
                     }
