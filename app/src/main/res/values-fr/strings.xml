@@ -288,4 +288,6 @@
     <string name="host_layout_fr">AZERTY français</string>
     <string name="host_layout_us">QWERTY US</string>
     <string name="host_layout_unicode">Texte Unicode (toute disposition, pas pour les jeux)</string>
+    <string name="title_floating_keyboard_button">Bouton clavier flottant</string>
+    <string name="summary_floating_keyboard_button">Bouton déplaçable : appui = afficher/masquer le clavier</string>
 </resources>
