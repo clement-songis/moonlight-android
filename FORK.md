@@ -11,6 +11,7 @@ Fork de [moonlight-android](https://github.com/moonlight-stream/moonlight-androi
 | **Bouton clavier flottant** | Appui : afficher/masquer le clavier. Appui long : réinitialiser le zoom. Déplaçable, colle au bord. |
 | **Barre de touches** | Au-dessus du clavier : Esc, Tab, Ctrl, Alt, AltGr, Win, Maj (appui = touche suivante, appui long = verrouillé), flèches, Suppr, Orig, Fin, PgUp/PgDn, Ins, F1–F12. |
 | **Tap 3 doigts tolérant** | N'importe quel ordre, jusqu'à 600 ms, petite dérive autorisée, survit aux ACTION_CANCEL des gestes OEM. |
+| **Menu d'actions rapides ☰** | Commandes hôte Sunshine : choix de l'écran capturé (Ctrl+Alt+Shift+F1…F12), curseur distant (Ctrl+Alt+Shift+N), plus clavier, zoom et déconnexion. |
 | **Pincer pour zoomer** | Jusqu'à ×8 autour des doigts, glisser à deux doigts une fois zoomé, les clics restent précis, la vue remonte au-dessus du clavier. |
 
 Tous les réglages sont dans *Paramètres → Entrée*.

@@ -32,6 +32,7 @@ import com.limelight.preferences.PreferenceConfiguration;
 import com.limelight.ui.GameGestures;
 import com.limelight.ui.StreamView;
 import com.limelight.ui.KeyboardToolbar;
+import com.limelight.ui.QuickActionsMenu;
 import com.limelight.ui.ZoomController;
 import com.limelight.binding.input.HostKeyboardLayout;
 import com.limelight.utils.Dialog;
@@ -1621,10 +1622,35 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             @Override
             public void onResetZoomRequested() {
-                if (zoomController != null) {
-                    zoomController.reset();
-                    Toast.makeText(Game.this, R.string.toast_zoom_reset, Toast.LENGTH_SHORT).show();
-                }
+                resetZoom();
+            }
+
+            @Override
+            public void onQuickActionsRequested(View anchor) {
+                QuickActionsMenu.show(Game.this, anchor, new QuickActionsMenu.Listener() {
+                    @Override
+                    public void onShortcut(int vk, int modifiers) {
+                        if (conn != null) {
+                            pressVk(vk, false, false, modifiers);
+                        }
+                    }
+
+                    @Override
+                    public void onToggleKeyboard() {
+                        toggleKeyboard();
+                    }
+
+                    @Override
+                    public void onResetZoom() {
+                        resetZoom();
+                    }
+
+                    @Override
+                    public void onDisconnect() {
+                        stopConnection();
+                        finish();
+                    }
+                });
             }
 
             @Override
@@ -1670,6 +1696,13 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     }
                 }
             });
+        }
+    }
+
+    private void resetZoom() {
+        if (zoomController != null) {
+            zoomController.reset();
+            Toast.makeText(Game.this, R.string.toast_zoom_reset, Toast.LENGTH_SHORT).show();
         }
     }
 

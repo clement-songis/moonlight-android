@@ -295,6 +295,13 @@
     <string name="title_two_finger_pan">Glisser à deux doigts déplace la vue quand zoomé</string>
     <string name="summary_two_finger_pan">Une fois zoomé, glisser à deux doigts déplace la vue au lieu de défiler</string>
     <string name="toast_zoom_reset">Zoom réinitialisé</string>
+    <string name="quick_action_keyboard">Clavier tactile</string>
+    <string name="quick_action_reset_zoom">Réinitialiser le zoom</string>
+    <string name="quick_menu_sunshine">Commandes Sunshine (hôte)</string>
+    <string name="quick_sunshine_cursor">Afficher/masquer le curseur distant (Ctrl+Alt+Shift+N)</string>
+    <string name="quick_menu_displays">Écran capturé (Ctrl+Alt+Shift+F1…F12)</string>
+    <string name="quick_display_number">Écran %1$d (F%1$d)</string>
+    <string name="quick_action_disconnect">Déconnecter</string>
     <string name="title_stream_orientation">Orientation du flux</string>
     <string name="orientation_auto">Rotation libre (portrait et paysage)</string>
     <string name="orientation_landscape">Paysage (comportement Moonlight)</string>

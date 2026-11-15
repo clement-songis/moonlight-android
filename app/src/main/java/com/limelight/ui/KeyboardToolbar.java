@@ -20,6 +20,7 @@ import com.limelight.binding.input.HostKeyboardLayout;
  * RealVNC-like keyboard helpers:
  *  - a small draggable floating button that toggles the soft keyboard (tap) or resets the zoom
  *    (long press). Always reachable, unlike the 3-finger tap.
+ *  - a second floating button opens the quick actions menu.
  *  - an extra keys bar shown right above the soft keyboard with Esc/Tab/Ctrl/Alt/AltGr/Win,
  *    arrows, navigation keys and F1-F12. Modifiers are sticky: tap = next key only,
  *    long press = locked until tapped again.
@@ -29,6 +30,7 @@ public class KeyboardToolbar {
         void onToggleKeyboardRequested();
         void onHideKeyboardRequested();
         void onResetZoomRequested();
+        void onQuickActionsRequested(View anchor);
         /** Send a full press (down+up) of a VK with the current sticky modifiers applied. */
         void onExtraKey(int vk);
     }
@@ -48,6 +50,7 @@ public class KeyboardToolbar {
     private final float density;
 
     private TextView fab;
+    private TextView menuFab;
     private HorizontalScrollView bar;
 
     private int latched = 0; // one-shot
@@ -61,6 +64,7 @@ public class KeyboardToolbar {
         this.density = context.getResources().getDisplayMetrics().density;
         if (showFab) {
             createFab();
+            createQuickActionsFab();
         }
         createBar();
     }
@@ -77,35 +81,38 @@ public class KeyboardToolbar {
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private void createFab() {
-        fab = new TextView(context);
-        fab.setText("\u2328"); // keyboard symbol
-        fab.setTextSize(22);
-        fab.setTextColor(Color.WHITE);
-        fab.setGravity(Gravity.CENTER);
+    private TextView createFloatingButton(String label, float yDp, View.OnClickListener click,
+                                          Runnable longPressAction) {
+        TextView button = new TextView(context);
+        button.setText(label);
+        button.setTextSize(22);
+        button.setTextColor(Color.WHITE);
+        button.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
         bg.setColor(0x80000000);
         bg.setStroke(dp(1), 0x80FFFFFF);
-        fab.setBackground(bg);
-        fab.setAlpha(0.6f);
+        button.setBackground(bg);
+        button.setAlpha(0.6f);
         int size = dp(48);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.START);
-        fab.setLayoutParams(lp);
-        fab.setTranslationX(dp(8));
-        fab.setTranslationY(dp(80));
+        button.setLayoutParams(lp);
+        button.setTranslationX(dp(8));
+        button.setTranslationY(dp(yDp));
 
         final int touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         final int longPress = ViewConfiguration.getLongPressTimeout();
-        fab.setOnTouchListener(new View.OnTouchListener() {
+        button.setOnTouchListener(new View.OnTouchListener() {
             float downRawX, downRawY, startTx, startTy;
             boolean dragging, longPressed;
             final Runnable longPressRunnable = new Runnable() {
                 @Override
                 public void run() {
                     longPressed = true;
-                    fab.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                    callbacks.onResetZoomRequested();
+                    button.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                    if (longPressAction != null) {
+                        longPressAction.run();
+                    }
                 }
             };
 
@@ -119,7 +126,9 @@ public class KeyboardToolbar {
                         startTy = v.getTranslationY();
                         dragging = longPressed = false;
                         v.setAlpha(1.0f);
-                        v.postDelayed(longPressRunnable, longPress);
+                        if (longPressAction != null) {
+                            v.postDelayed(longPressRunnable, longPress);
+                        }
                         return true;
                     case MotionEvent.ACTION_MOVE: {
                         float dx = e.getRawX() - downRawX, dy = e.getRawY() - downRawY;
@@ -145,7 +154,7 @@ public class KeyboardToolbar {
                         }
                         else if (!longPressed) {
                             v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
-                            callbacks.onToggleKeyboardRequested();
+                            click.onClick(v);
                         }
                         return true;
                     case MotionEvent.ACTION_CANCEL:
@@ -156,7 +165,20 @@ public class KeyboardToolbar {
                 return false;
             }
         });
+        return button;
+    }
+
+    private void createFab() {
+        fab = createFloatingButton("\u2328", 80,
+                v -> callbacks.onToggleKeyboardRequested(),
+                () -> callbacks.onResetZoomRequested());
         root.addView(fab);
+    }
+
+    private void createQuickActionsFab() {
+        menuFab = createFloatingButton("\u2630", 136,
+                v -> callbacks.onQuickActionsRequested(v), null);
+        root.addView(menuFab);
     }
 
     private TextView makeKey(String label, View.OnClickListener click, View.OnLongClickListener longClick) {
@@ -297,6 +319,9 @@ public class KeyboardToolbar {
             if (fab != null) {
                 fab.bringToFront();
             }
+            if (menuFab != null) {
+                menuFab.bringToFront();
+            }
         }
         else {
             bar.setVisibility(View.GONE);
@@ -314,6 +339,9 @@ public class KeyboardToolbar {
     public void setVisible(boolean visible) {
         if (fab != null) {
             fab.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+        if (menuFab != null) {
+            menuFab.setVisibility(visible ? View.VISIBLE : View.GONE);
         }
         if (!visible) {
             bar.setVisibility(View.GONE);
