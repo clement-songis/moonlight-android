@@ -289,5 +289,10 @@
     <string name="host_layout_us">QWERTY US</string>
     <string name="host_layout_unicode">Texte Unicode (toute disposition, pas pour les jeux)</string>
     <string name="title_floating_keyboard_button">Bouton clavier flottant</string>
-    <string name="summary_floating_keyboard_button">Bouton déplaçable : appui = afficher/masquer le clavier</string>
+    <string name="summary_floating_keyboard_button">Bouton déplaçable : appui = afficher/masquer le clavier, appui long = réinitialiser le zoom</string>
+    <string name="title_pinch_zoom">Pincer pour zoomer</string>
+    <string name="summary_pinch_zoom">Zoomer dans le flux avec deux doigts</string>
+    <string name="title_two_finger_pan">Glisser à deux doigts déplace la vue quand zoomé</string>
+    <string name="summary_two_finger_pan">Une fois zoomé, glisser à deux doigts déplace la vue au lieu de défiler</string>
+    <string name="toast_zoom_reset">Zoom réinitialisé</string>
 </resources>

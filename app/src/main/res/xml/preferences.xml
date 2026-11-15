@@ -142,6 +142,17 @@
             android:summary="@string/summary_floating_keyboard_button"
             android:defaultValue="true" />
         <CheckBoxPreference
+            android:key="checkbox_pinch_zoom"
+            android:title="@string/title_pinch_zoom"
+            android:summary="@string/summary_pinch_zoom"
+            android:defaultValue="true" />
+        <CheckBoxPreference
+            android:key="checkbox_two_finger_pan_when_zoomed"
+            android:dependency="checkbox_pinch_zoom"
+            android:title="@string/title_two_finger_pan"
+            android:summary="@string/summary_two_finger_pan"
+            android:defaultValue="true" />
+        <CheckBoxPreference
             android:key="checkbox_touchscreen_trackpad"
             android:title="@string/title_checkbox_touchscreen_trackpad"
             android:summary="@string/summary_checkbox_touchscreen_trackpad"
