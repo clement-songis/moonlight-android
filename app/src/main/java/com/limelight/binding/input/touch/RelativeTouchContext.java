@@ -22,6 +22,10 @@ public class RelativeTouchContext implements TouchContext {
     private double xFactor, yFactor;
     private int pointerCount;
     private int maxPointerCountInGesture;
+    private int lastTapUpX = 0;
+    private int lastTapUpY = 0;
+    private long lastTapUpTime = 0;
+    private boolean doubleTapHoldCandidate;
 
     private final NvConnection conn;
     private final int actionIndex;
@@ -47,6 +51,13 @@ public class RelativeTouchContext implements TouchContext {
             // We haven't been cancelled before the timer expired so begin dragging
             confirmedDrag = true;
             conn.sendMouseButtonDown(getMouseButtonIndex());
+        }
+    };
+
+    private final Runnable doubleTapHoldRunnable = new Runnable() {
+        @Override
+        public void run() {
+            startDoubleTapDrag();
         }
     };
 
@@ -88,6 +99,9 @@ public class RelativeTouchContext implements TouchContext {
     private static final int TAP_DISTANCE_THRESHOLD = 25;
     private static final int TAP_TIME_THRESHOLD = 250;
     private static final int DRAG_TIME_THRESHOLD = 650;
+    private static final int DOUBLE_TAP_TIME_THRESHOLD = 300;
+    private static final int DOUBLE_TAP_DISTANCE_THRESHOLD = 60;
+    private static final int DOUBLE_TAP_HOLD_DELAY = 120;
 
     private static final int SCROLL_SPEED_FACTOR = 5;
 
@@ -160,10 +174,21 @@ public class RelativeTouchContext implements TouchContext {
             originalTouchTime = eventTime;
             cancelled = confirmedDrag = confirmedMove = confirmedScroll = false;
             distanceMoved = 0;
+            doubleTapHoldCandidate = actionIndex == 0 &&
+                    eventTime - lastTapUpTime <= DOUBLE_TAP_TIME_THRESHOLD &&
+                    Math.hypot(eventX - lastTapUpX, eventY - lastTapUpY) <= DOUBLE_TAP_DISTANCE_THRESHOLD;
 
             if (actionIndex == 0) {
-                // Start the timer for engaging a drag
-                startDragTimer();
+                if (doubleTapHoldCandidate) {
+                    // Finish the first click before its delayed up event can race the drag.
+                    handler.removeCallbacks(buttonUpRunnables[MouseButtonPacket.BUTTON_LEFT - 1]);
+                    conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+                    startDoubleTapHoldTimer();
+                }
+                else {
+                    // Start the timer for engaging a regular long-press drag
+                    startDragTimer();
+                }
             }
         }
 
@@ -179,12 +204,14 @@ public class RelativeTouchContext implements TouchContext {
 
         // Cancel the drag timer
         cancelDragTimer();
+        cancelDoubleTapHoldTimer();
 
         byte buttonIndex = getMouseButtonIndex();
 
         if (confirmedDrag) {
             // Raise the button after a drag
             conn.sendMouseButtonUp(buttonIndex);
+            lastTapUpTime = 0;
         }
         else if (isTap(eventTime))
         {
@@ -196,7 +223,13 @@ public class RelativeTouchContext implements TouchContext {
             Runnable buttonUpRunnable = buttonUpRunnables[buttonIndex - 1];
             handler.removeCallbacks(buttonUpRunnable);
             handler.postDelayed(buttonUpRunnable, 100);
+            if (actionIndex == 0) {
+                lastTapUpX = eventX;
+                lastTapUpY = eventY;
+                lastTapUpTime = eventTime;
+            }
         }
+        doubleTapHoldCandidate = false;
     }
 
     private void startDragTimer() {
@@ -208,9 +241,44 @@ public class RelativeTouchContext implements TouchContext {
         handler.removeCallbacks(dragTimerRunnable);
     }
 
+    private void startDoubleTapHoldTimer() {
+        cancelDoubleTapHoldTimer();
+        handler.postDelayed(doubleTapHoldRunnable, DOUBLE_TAP_HOLD_DELAY);
+    }
+
+    private void cancelDoubleTapHoldTimer() {
+        handler.removeCallbacks(doubleTapHoldRunnable);
+    }
+
+    private void startDoubleTapDrag() {
+        if (cancelled || confirmedDrag || !doubleTapHoldCandidate) {
+            return;
+        }
+        cancelDragTimer();
+        cancelDoubleTapHoldTimer();
+        confirmedDrag = true;
+        doubleTapHoldCandidate = false;
+        lastTapUpTime = 0;
+
+        // Keep the left button held until the second finger is released.
+        handler.removeCallbacks(buttonUpRunnables[MouseButtonPacket.BUTTON_LEFT - 1]);
+        conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+        conn.sendMouseButtonDown(MouseButtonPacket.BUTTON_LEFT);
+    }
+
     private void checkForConfirmedMove(int eventX, int eventY) {
         // If we've already confirmed something, get out now
         if (confirmedMove || confirmedDrag) {
+            return;
+        }
+
+        if (doubleTapHoldCandidate) {
+            distanceMoved += Math.hypot(eventX - lastTouchX, eventY - lastTouchY);
+            if (!isWithinTapBounds(eventX, eventY) || distanceMoved >= TAP_DISTANCE_THRESHOLD) {
+                // Start dragging immediately when the second tap moves, without waiting
+                // for the regular long-press timeout.
+                startDoubleTapDrag();
+            }
             return;
         }
 
@@ -308,6 +376,8 @@ public class RelativeTouchContext implements TouchContext {
 
         // Cancel the drag timer
         cancelDragTimer();
+        cancelDoubleTapHoldTimer();
+        doubleTapHoldCandidate = false;
 
         // If it was a confirmed drag, we'll need to raise the button now
         if (confirmedDrag) {

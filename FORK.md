@@ -11,6 +11,7 @@ Fork de [moonlight-android](https://github.com/moonlight-stream/moonlight-androi
 | **Bouton menu flottant** | Bouton déplaçable qui ouvre le panneau d'actions depuis la gauche ou la droite. ☰ devient × pendant l'ouverture. |
 | **Barre de touches** | Au-dessus du clavier : Esc, Tab, Ctrl, Alt, AltGr, Win, Maj (appui = touche suivante, appui long = verrouillé), flèches, Suppr, Orig, Fin, PgUp/PgDn, Ins, F1–F12. |
 | **Tap 3 doigts tolérant** | N'importe quel ordre, jusqu'à 600 ms, petite dérive autorisée, survit aux ACTION_CANCEL des gestes OEM. |
+| **Drag and drop tactile** | Double-tap puis maintien du second tap et glisser : maintient le clic gauche jusqu'au relâcher, en mode absolu comme en trackpad. |
 | **Menu d'actions rapides ☰** | Panneau latéral avec icônes : clavier, rotation manuelle même si la rotation système est bloquée, curseur distant (Ctrl+Alt+Shift+N), choix de l'écran capturé (Ctrl+Alt+Shift+F1…F12), zoom et déconnexion. |
 | **Pincer pour zoomer** | Jusqu'à ×8 autour des doigts, glisser à trois doigts déplace la vue zoomée, deux doigts gardent le défilement, les clics restent précis, la vue remonte au-dessus du clavier. Réinitialisation depuis le menu ☰. |
 

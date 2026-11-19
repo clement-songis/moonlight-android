@@ -19,6 +19,7 @@ public class AbsoluteTouchContext implements TouchContext {
     private boolean cancelled;
     private boolean confirmedLongPress;
     private boolean confirmedTap;
+    private boolean doubleTapHoldCandidate;
 
     private final Runnable longPressRunnable = new Runnable() {
         @Override
@@ -92,11 +93,18 @@ public class AbsoluteTouchContext implements TouchContext {
         lastTouchLocationY = lastTouchDownY = eventY;
         lastTouchDownTime = eventTime;
         cancelled = confirmedTap = confirmedLongPress = false;
+        doubleTapHoldCandidate = lastTouchDownTime - lastTouchUpTime <= DOUBLE_TAP_TIME_THRESHOLD &&
+                !distanceExceeds(lastTouchDownX - lastTouchUpX, lastTouchDownY - lastTouchUpY,
+                        DOUBLE_TAP_DISTANCE_THRESHOLD);
 
         if (actionIndex == 0) {
             // Start the timers
             startTapDownTimer();
-            startLongPressTimer();
+            if (!doubleTapHoldCandidate) {
+                // The second tap of a double-tap-and-hold must keep the left button,
+                // not turn into a right click after the long press timeout.
+                startLongPressTimer();
+            }
         }
 
         return true;
@@ -179,6 +187,13 @@ public class AbsoluteTouchContext implements TouchContext {
 
         confirmedTap = true;
         cancelTapDownTimer();
+
+        if (doubleTapHoldCandidate) {
+            // Finish the first click even if its delayed button-up is still pending,
+            // then keep the button held for the second tap's drag.
+            handler.removeCallbacks(leftButtonUpRunnable);
+            conn.sendMouseButtonUp(MouseButtonPacket.BUTTON_LEFT);
+        }
 
         // Left button down at original position
         if (lastTouchDownTime - lastTouchUpTime > DOUBLE_TAP_TIME_THRESHOLD ||
