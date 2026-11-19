@@ -18,9 +18,7 @@ import com.limelight.binding.input.HostKeyboardLayout;
 
 /**
  * RealVNC-like keyboard helpers:
- *  - a small draggable floating button that toggles the soft keyboard (tap) or resets the zoom
- *    (long press). Always reachable, unlike the 3-finger tap.
- *  - a second floating button opens the quick actions menu.
+ *  - a draggable floating button opens the quick actions side panel.
  *  - an extra keys bar shown right above the soft keyboard with Esc/Tab/Ctrl/Alt/AltGr/Win,
  *    arrows, navigation keys and F1-F12. Modifiers are sticky: tap = next key only,
  *    long press = locked until tapped again.
@@ -49,7 +47,6 @@ public class KeyboardToolbar {
     private final Callbacks callbacks;
     private final float density;
 
-    private TextView fab;
     private TextView menuFab;
     private HorizontalScrollView bar;
 
@@ -63,7 +60,6 @@ public class KeyboardToolbar {
         this.callbacks = callbacks;
         this.density = context.getResources().getDisplayMetrics().density;
         if (showFab) {
-            createFab();
             createQuickActionsFab();
         }
         createBar();
@@ -168,15 +164,8 @@ public class KeyboardToolbar {
         return button;
     }
 
-    private void createFab() {
-        fab = createFloatingButton("\u2328", 80,
-                v -> callbacks.onToggleKeyboardRequested(),
-                () -> callbacks.onResetZoomRequested());
-        root.addView(fab);
-    }
-
     private void createQuickActionsFab() {
-        menuFab = createFloatingButton("\u2630", 136,
+        menuFab = createFloatingButton("\u2630", 80,
                 v -> callbacks.onQuickActionsRequested(v), null);
         root.addView(menuFab);
     }
@@ -316,9 +305,6 @@ public class KeyboardToolbar {
             }
             bar.setVisibility(View.VISIBLE);
             bar.bringToFront();
-            if (fab != null) {
-                fab.bringToFront();
-            }
             if (menuFab != null) {
                 menuFab.bringToFront();
             }
@@ -337,9 +323,6 @@ public class KeyboardToolbar {
     }
 
     public void setVisible(boolean visible) {
-        if (fab != null) {
-            fab.setVisibility(visible ? View.VISIBLE : View.GONE);
-        }
         if (menuFab != null) {
             menuFab.setVisibility(visible ? View.VISIBLE : View.GONE);
         }

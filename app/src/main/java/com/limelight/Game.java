@@ -105,6 +105,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     // Fork: zoom, keyboard helpers and host layout
     private ZoomController zoomController;
+    private QuickActionsMenu quickActionsMenu;
     private KeyboardToolbar keyboardToolbar;
     private HostKeyboardLayout hostLayout;
     private boolean imeVisible = false;
@@ -605,6 +606,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             // For regular displays, we always request landscape
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER_LANDSCAPE);
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (quickActionsMenu != null && quickActionsMenu.isShowing()) {
+            quickActionsMenu.close();
+            return;
+        }
+        super.onBackPressed();
     }
 
     @Override
@@ -1627,30 +1637,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
             @Override
             public void onQuickActionsRequested(View anchor) {
-                QuickActionsMenu.show(Game.this, anchor, new QuickActionsMenu.Listener() {
-                    @Override
-                    public void onShortcut(int vk, int modifiers) {
-                        if (conn != null) {
-                            pressVk(vk, false, false, modifiers);
-                        }
-                    }
-
-                    @Override
-                    public void onToggleKeyboard() {
-                        toggleKeyboard();
-                    }
-
-                    @Override
-                    public void onResetZoom() {
-                        resetZoom();
-                    }
-
-                    @Override
-                    public void onDisconnect() {
-                        stopConnection();
-                        finish();
-                    }
-                });
+                toggleQuickActionsMenu(anchor);
             }
 
             @Override
@@ -1697,6 +1684,37 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 }
             });
         }
+    }
+
+    private void toggleQuickActionsMenu(View anchor) {
+        if (quickActionsMenu == null) {
+            quickActionsMenu = new QuickActionsMenu(this, (FrameLayout) streamView.getParent(),
+                    new QuickActionsMenu.Listener() {
+                        @Override
+                        public void onShortcut(int vk, int modifiers) {
+                            if (conn != null) {
+                                pressVk(vk, false, false, modifiers);
+                            }
+                        }
+
+                        @Override
+                        public void onToggleKeyboard() {
+                            toggleKeyboard();
+                        }
+
+                        @Override
+                        public void onResetZoom() {
+                            resetZoom();
+                        }
+
+                        @Override
+                        public void onDisconnect() {
+                            stopConnection();
+                            finish();
+                        }
+                    });
+        }
+        quickActionsMenu.toggle(anchor);
     }
 
     private void resetZoom() {

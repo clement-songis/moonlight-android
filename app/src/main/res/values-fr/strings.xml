@@ -288,8 +288,8 @@
     <string name="host_layout_fr">AZERTY français</string>
     <string name="host_layout_us">QWERTY US</string>
     <string name="host_layout_unicode">Texte Unicode (toute disposition, pas pour les jeux)</string>
-    <string name="title_floating_keyboard_button">Bouton clavier flottant</string>
-    <string name="summary_floating_keyboard_button">Bouton déplaçable : appui = afficher/masquer le clavier, appui long = réinitialiser le zoom</string>
+    <string name="title_floating_keyboard_button">Bouton de menu flottant</string>
+    <string name="summary_floating_keyboard_button">Bouton déplaçable : appui pour ouvrir le panneau d\'actions rapides</string>
     <string name="title_pinch_zoom">Pincer pour zoomer</string>
     <string name="summary_pinch_zoom">Zoomer dans le flux avec deux doigts</string>
     <string name="title_two_finger_pan">Glisser à deux doigts déplace la vue quand zoomé</string>
@@ -298,10 +298,15 @@
     <string name="quick_action_keyboard">Clavier tactile</string>
     <string name="quick_action_reset_zoom">Réinitialiser le zoom</string>
     <string name="quick_menu_sunshine">Commandes Sunshine (hôte)</string>
-    <string name="quick_sunshine_cursor">Afficher/masquer le curseur distant (Ctrl+Alt+Shift+N)</string>
-    <string name="quick_menu_displays">Écran capturé (Ctrl+Alt+Shift+F1…F12)</string>
+    <string name="quick_sunshine_cursor">Curseur distant</string>
+    <string name="quick_menu_displays">Écran capturé</string>
     <string name="quick_display_number">Écran %1$d (F%1$d)</string>
     <string name="quick_action_disconnect">Déconnecter</string>
+    <string name="quick_actions_title">Actions rapides</string>
+    <string name="quick_actions_subtitle">Contrôles du flux et de Sunshine</string>
+    <string name="quick_close">Fermer les actions rapides</string>
+    <string name="quick_cursor_shortcut">Ctrl+Alt+Shift+N</string>
+    <string name="quick_displays_shortcut">Ctrl+Alt+Shift+F1…F12</string>
     <string name="title_stream_orientation">Orientation du flux</string>
     <string name="orientation_auto">Rotation libre (portrait et paysage)</string>
     <string name="orientation_landscape">Paysage (comportement Moonlight)</string>

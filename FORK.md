@@ -8,11 +8,11 @@ Fork de [moonlight-android](https://github.com/moonlight-stream/moonlight-androi
 |---|---|
 | **Disposition clavier de l'hôte** | Sunshine convertit les touches en positions QWERTY US. Les caractères du clavier tactile sont envoyés à la position qui les produit sur l'hôte (AZERTY français par défaut, QWERTY US, ou texte Unicode). Touches mortes et AltGr gérées (`ê`, `@`, `€`, `{`…). |
 | **Clavier tactile fiable** | InputConnection dédiée (mode touches brutes, sans autocorrection), ouverture/fermeture explicites au lieu de `toggleSoftInput()` déprécié, suivi réel de la visibilité du clavier. |
-| **Bouton clavier flottant** | Appui : afficher/masquer le clavier. Appui long : réinitialiser le zoom. Déplaçable, colle au bord. |
+| **Bouton menu flottant** | Bouton déplaçable qui ouvre le panneau d'actions depuis la gauche ou la droite. ☰ devient × pendant l'ouverture. |
 | **Barre de touches** | Au-dessus du clavier : Esc, Tab, Ctrl, Alt, AltGr, Win, Maj (appui = touche suivante, appui long = verrouillé), flèches, Suppr, Orig, Fin, PgUp/PgDn, Ins, F1–F12. |
 | **Tap 3 doigts tolérant** | N'importe quel ordre, jusqu'à 600 ms, petite dérive autorisée, survit aux ACTION_CANCEL des gestes OEM. |
-| **Menu d'actions rapides ☰** | Commandes hôte Sunshine : choix de l'écran capturé (Ctrl+Alt+Shift+F1…F12), curseur distant (Ctrl+Alt+Shift+N), plus clavier, zoom et déconnexion. |
-| **Pincer pour zoomer** | Jusqu'à ×8 autour des doigts, glisser à deux doigts une fois zoomé, les clics restent précis, la vue remonte au-dessus du clavier. |
+| **Menu d'actions rapides ☰** | Panneau latéral avec icônes : clavier, curseur distant (Ctrl+Alt+Shift+N), choix de l'écran capturé (Ctrl+Alt+Shift+F1…F12), zoom et déconnexion. |
+| **Pincer pour zoomer** | Jusqu'à ×8 autour des doigts, glisser à deux doigts une fois zoomé, les clics restent précis, la vue remonte au-dessus du clavier. Réinitialisation depuis le menu ☰. |
 
 Tous les réglages sont dans *Paramètres → Entrée*.
 
