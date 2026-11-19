@@ -1639,7 +1639,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 @Override
                 public void onZoomChanged(float scale) {
                 }
-            }, prefConfig.twoFingerPanWhenZoomed);
+            }, prefConfig.threeFingerPanWhenZoomed);
             streamView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
                 @Override
                 public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {

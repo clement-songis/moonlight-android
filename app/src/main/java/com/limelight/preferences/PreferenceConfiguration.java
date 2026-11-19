@@ -66,7 +66,7 @@ public class PreferenceConfiguration {
     public static final String ORIENTATION_PORTRAIT = "portrait";
     private static final String KEYBOARD_BUTTON_PREF_STRING = "checkbox_floating_keyboard_button";
     private static final String PINCH_ZOOM_PREF_STRING = "checkbox_pinch_zoom";
-    private static final String TWO_FINGER_PAN_PREF_STRING = "checkbox_two_finger_pan_when_zoomed";
+    private static final String THREE_FINGER_PAN_PREF_STRING = "checkbox_two_finger_pan_when_zoomed";
     private static final String LATENCY_TOAST_PREF_STRING = "checkbox_enable_post_stream_toast";
     private static final String FRAME_PACING_PREF_STRING = "frame_pacing";
     private static final String ABSOLUTE_MOUSE_MODE_PREF_STRING = "checkbox_absolute_mouse_mode";
@@ -158,7 +158,7 @@ public class PreferenceConfiguration {
     public String streamOrientation;
     public boolean floatingKeyboardButton;
     public boolean pinchZoom;
-    public boolean twoFingerPanWhenZoomed;
+    public boolean threeFingerPanWhenZoomed;
     public MoonBridge.AudioConfiguration audioConfiguration;
     public int framePacing;
     public boolean absoluteMouseMode;
@@ -610,7 +610,7 @@ public class PreferenceConfiguration {
         config.streamOrientation = prefs.getString(STREAM_ORIENTATION_PREF_STRING, ORIENTATION_AUTO);
         config.floatingKeyboardButton = prefs.getBoolean(KEYBOARD_BUTTON_PREF_STRING, true);
         config.pinchZoom = prefs.getBoolean(PINCH_ZOOM_PREF_STRING, true);
-        config.twoFingerPanWhenZoomed = prefs.getBoolean(TWO_FINGER_PAN_PREF_STRING, true);
+        config.threeFingerPanWhenZoomed = prefs.getBoolean(THREE_FINGER_PAN_PREF_STRING, true);
         config.enableLatencyToast = prefs.getBoolean(LATENCY_TOAST_PREF_STRING, DEFAULT_LATENCY_TOAST);
         config.absoluteMouseMode = prefs.getBoolean(ABSOLUTE_MOUSE_MODE_PREF_STRING, DEFAULT_ABSOLUTE_MOUSE_MODE);
         config.enableAudioFx = prefs.getBoolean(ENABLE_AUDIO_FX_PREF_STRING, DEFAULT_ENABLE_AUDIO_FX);

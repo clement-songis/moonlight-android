@@ -292,8 +292,8 @@
     <string name="summary_floating_keyboard_button">Bouton déplaçable : appui pour ouvrir le panneau d\'actions rapides</string>
     <string name="title_pinch_zoom">Pincer pour zoomer</string>
     <string name="summary_pinch_zoom">Zoomer dans le flux avec deux doigts</string>
-    <string name="title_two_finger_pan">Glisser à deux doigts déplace la vue quand zoomé</string>
-    <string name="summary_two_finger_pan">Une fois zoomé, glisser à deux doigts déplace la vue au lieu de défiler</string>
+    <string name="title_two_finger_pan">Glisser à trois doigts déplace la vue quand zoomé</string>
+    <string name="summary_two_finger_pan">Deux doigts font toujours défiler ; utilise trois doigts pour déplacer la vue zoomée</string>
     <string name="toast_zoom_reset">Zoom réinitialisé</string>
     <string name="quick_action_keyboard">Clavier tactile</string>
     <string name="quick_action_rotate">Pivoter l\'écran</string>

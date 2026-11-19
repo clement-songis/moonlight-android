@@ -13,8 +13,10 @@ import android.view.View;
  *
  * Two-finger gesture classification:
  *  - distance between fingers changes more than the slop -> ZOOM (zoom around the fingers + pan)
- *  - zoomed in and fingers move together -> PAN (unless the user prefers scrolling)
  *  - otherwise -> left to Moonlight (two-finger scroll / right click)
+ *
+ * When zoomed, a three-finger drag pans the view. A three-finger tap is left to Moonlight's
+ * keyboard gesture, so scrolling and panning no longer compete for the same two-finger drag.
  */
 public class ZoomController {
     public interface Listener {
@@ -26,14 +28,14 @@ public class ZoomController {
     private static final float MIN_SCALE = 1.0f;
     private static final float MAX_SCALE = 8.0f;
 
-    private enum State { IDLE, PENDING, ZOOM, PAN, CONSUME_UNTIL_UP }
+    private enum State { IDLE, PENDING, PAN_PENDING, ZOOM, PAN, CONSUME_UNTIL_UP }
 
     private final View target;
     private final View container;
     private final Listener listener;
     private final float pinchSlop;
     private final float panSlop;
-    private final boolean twoFingerPanWhenZoomed;
+    private final boolean threeFingerPanWhenZoomed;
 
     private float scale = 1.0f;
     private float transX = 0, transY = 0;
@@ -48,11 +50,11 @@ public class ZoomController {
 
     private final Matrix inverse = new Matrix();
 
-    public ZoomController(View target, View container, Listener listener, boolean twoFingerPanWhenZoomed) {
+    public ZoomController(View target, View container, Listener listener, boolean threeFingerPanWhenZoomed) {
         this.target = target;
         this.container = container;
         this.listener = listener;
-        this.twoFingerPanWhenZoomed = twoFingerPanWhenZoomed;
+        this.threeFingerPanWhenZoomed = threeFingerPanWhenZoomed;
         float density = target.getResources().getDisplayMetrics().density;
         this.pinchSlop = 28 * density;
         this.panSlop = 16 * density;
@@ -108,11 +110,19 @@ public class ZoomController {
     }
 
     private static float focusX(MotionEvent e) {
-        return (e.getX(0) + e.getX(1)) / 2;
+        float sum = 0;
+        for (int i = 0; i < e.getPointerCount(); i++) {
+            sum += e.getX(i);
+        }
+        return sum / e.getPointerCount();
     }
 
     private static float focusY(MotionEvent e) {
-        return (e.getY(0) + e.getY(1)) / 2;
+        float sum = 0;
+        for (int i = 0; i < e.getPointerCount(); i++) {
+            sum += e.getY(i);
+        }
+        return sum / e.getPointerCount();
     }
 
     /**
@@ -140,6 +150,13 @@ public class ZoomController {
                     anchorX = (startFocusX - target.getLeft() - transX) / scale;
                     anchorY = (startFocusY - target.getTop() - transY) / scale;
                 }
+                else if (e.getPointerCount() == 3 && threeFingerPanWhenZoomed && isZoomed()) {
+                    // Do not consume this yet: a motionless three-finger tap must still open
+                    // the keyboard. Only take over once the fingers actually drag.
+                    state = State.PAN_PENDING;
+                    startFocusX = lastFocusX = focusX(e);
+                    startFocusY = lastFocusY = focusY(e);
+                }
                 else {
                     // 3+ fingers: not ours (keyboard gesture)
                     state = State.IDLE;
@@ -152,8 +169,6 @@ public class ZoomController {
                 }
                 if (state == State.PENDING) {
                     float d = dist(e);
-                    float fx = focusX(e), fy = focusY(e);
-                    float moved = (float) Math.hypot(fx - startFocusX, fy - startFocusY);
                     if (Math.abs(d - startDist) > pinchSlop) {
                         state = State.ZOOM;
                         // Restart from here so the zoom does not jump by the slop
@@ -161,16 +176,22 @@ public class ZoomController {
                         startScale = scale;
                         listener.onZoomGestureStarted();
                     }
-                    else if (twoFingerPanWhenZoomed && isZoomed() && moved > panSlop) {
+                    else {
+                        // A two-finger drag is Moonlight's scroll gesture, even when zoomed.
+                        return false;
+                    }
+                }
+                if (state == State.PAN_PENDING) {
+                    float fx = focusX(e), fy = focusY(e);
+                    if (Math.hypot(fx - startFocusX, fy - startFocusY) > panSlop) {
                         state = State.PAN;
+                        // Restart here to avoid a jump by the slop distance.
                         lastFocusX = fx;
                         lastFocusY = fy;
                         listener.onZoomGestureStarted();
                         return true;
                     }
-                    else {
-                        return false;
-                    }
+                    return false;
                 }
                 if (state == State.ZOOM) {
                     float d = dist(e);
@@ -199,7 +220,7 @@ public class ZoomController {
                     state = State.CONSUME_UNTIL_UP;
                     return true;
                 }
-                if (state == State.PENDING) {
+                if (state == State.PENDING || state == State.PAN_PENDING) {
                     state = State.IDLE;
                 }
                 return state == State.CONSUME_UNTIL_UP;
