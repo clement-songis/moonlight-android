@@ -23,6 +23,7 @@ public final class QuickActionsMenu {
     public interface Listener {
         void onShortcut(int vk, int modifiers);
         void onToggleKeyboard();
+        void onRotate();
         void onResetZoom();
         void onDisconnect();
     }
@@ -170,6 +171,9 @@ public final class QuickActionsMenu {
 
         content.addView(makeRow(R.drawable.ic_quick_keyboard, R.string.quick_action_keyboard,
                 null, false, v -> runAction(listener::onToggleKeyboard)));
+        content.addView(makeRow(R.drawable.ic_quick_rotate, R.string.quick_action_rotate,
+                context.getString(R.string.quick_rotate_summary), false,
+                v -> runAction(listener::onRotate)));
         content.addView(makeRow(R.drawable.ic_quick_zoom, R.string.quick_action_reset_zoom,
                 null, false, v -> runAction(listener::onResetZoom)));
 

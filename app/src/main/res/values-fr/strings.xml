@@ -296,6 +296,8 @@
     <string name="summary_two_finger_pan">Une fois zoomé, glisser à deux doigts déplace la vue au lieu de défiler</string>
     <string name="toast_zoom_reset">Zoom réinitialisé</string>
     <string name="quick_action_keyboard">Clavier tactile</string>
+    <string name="quick_action_rotate">Pivoter l\'écran</string>
+    <string name="quick_rotate_summary">Fonctionne même si la rotation automatique est bloquée</string>
     <string name="quick_action_reset_zoom">Réinitialiser le zoom</string>
     <string name="quick_menu_sunshine">Commandes Sunshine (hôte)</string>
     <string name="quick_sunshine_cursor">Curseur distant</string>

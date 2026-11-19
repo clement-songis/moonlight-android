@@ -64,6 +64,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.util.Rational;
 import android.view.Display;
 import android.view.InputDevice;
@@ -151,6 +152,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private String appName;
     private NvApp app;
     private float desiredRefreshRate;
+    private Integer manualStreamOrientation;
 
     private InputCaptureProvider inputCaptureProvider;
     private int modifierFlags = 0;
@@ -568,7 +570,16 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return;
         }
         else if (PreferenceConfiguration.ORIENTATION_AUTO.equals(prefConfig.streamOrientation)) {
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+            if (isSystemAutoRotateEnabled()) {
+                // Return to sensor-driven rotation as soon as the user unlocks it.
+                manualStreamOrientation = null;
+            }
+            if (manualStreamOrientation != null) {
+                setRequestedOrientation(manualStreamOrientation);
+            }
+            else {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_FULL_USER);
+            }
             return;
         }
 
@@ -615,6 +626,24 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             return;
         }
         super.onBackPressed();
+    }
+
+    private boolean isSystemAutoRotateEnabled() {
+        return Settings.System.getInt(getContentResolver(), Settings.System.ACCELEROMETER_ROTATION, 0) == 1;
+    }
+
+    private void rotateStreamManually() {
+        int current = getResources().getConfiguration().orientation;
+        manualStreamOrientation = current == Configuration.ORIENTATION_PORTRAIT
+                ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                : ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
+        setRequestedOrientation(manualStreamOrientation);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setPreferredOrientationForCurrentDisplay();
     }
 
     @Override
@@ -1700,6 +1729,11 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                         @Override
                         public void onToggleKeyboard() {
                             toggleKeyboard();
+                        }
+
+                        @Override
+                        public void onRotate() {
+                            rotateStreamManually();
                         }
 
                         @Override

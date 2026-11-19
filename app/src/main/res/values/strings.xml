@@ -315,6 +315,8 @@
     <string name="summary_two_finger_pan">When zoomed in, dragging with two fingers moves the view instead of scrolling</string>
     <string name="toast_zoom_reset">Zoom reset</string>
     <string name="quick_action_keyboard">Soft keyboard</string>
+    <string name="quick_action_rotate">Rotate screen</string>
+    <string name="quick_rotate_summary">Works with system auto-rotate locked</string>
     <string name="quick_action_reset_zoom">Reset zoom</string>
     <string name="quick_menu_sunshine">Sunshine host commands</string>
     <string name="quick_sunshine_cursor">Remote cursor</string>
